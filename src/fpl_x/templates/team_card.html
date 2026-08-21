@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ team.team_name }} · GW{{ team.gw }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0e1a14; font-family: Outfit, "Segoe UI", sans-serif; color: #fff; }
+    .card { width: 1080px; background: #37003c; overflow: hidden; }
+    .header {
+      padding: 22px 32px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand { font-size: 12px; letter-spacing: 0.2em; font-weight: 700; color: #00ff87; text-transform: uppercase; }
+    .team-name { font-size: 34px; font-weight: 800; line-height: 1.1; margin-top: 4px; }
+    .sub { margin-top: 4px; color: rgba(255,255,255,0.75); font-weight: 500; font-size: 16px; }
+    .gw-badge {
+      background: #00ff87;
+      color: #37003c;
+      border-radius: 14px;
+      padding: 10px 18px;
+      text-align: center;
+      font-weight: 800;
+      min-width: 120px;
+    }
+    .gw-badge small { display: block; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; }
+    .gw-badge strong { font-size: 28px; }
+    .pitch {
+      margin: 0 20px 16px;
+      border-radius: 8px;
+      min-height: 820px;
+      padding: 28px 10px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,0.06), transparent 42%),
+        repeating-linear-gradient(180deg, #1f8f4a 0 92px, #187e40 92px 184px);
+      position: relative;
+    }
+    .pitch::before, .pitch::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 2px solid rgba(255,255,255,0.22);
+      pointer-events: none;
+    }
+    .pitch::before { top: 0; width: 260px; height: 80px; border-top: none; }
+    .pitch::after { bottom: 0; width: 260px; height: 80px; border-bottom: none; }
+    .row {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+    .player { width: 168px; text-align: center; }
+    .kit-wrap { position: relative; height: 110px; margin-bottom: 6px; }
+    .kit {
+      height: 110px;
+      width: auto;
+      max-width: 100px;
+      object-fit: contain;
+      filter: drop-shadow(0 6px 8px rgba(0,0,0,0.35));
+    }
+    .fallback {
+      display: none;
+      width: 72px;
+      height: 72px;
+      margin: 0 auto;
+      border-radius: 12px;
+      background: #240028;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+    }
+    .badge {
+      position: absolute;
+      right: 28px;
+      top: 0;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #ffd54f;
+      color: #1a1200;
+      font-weight: 800;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .badge.v { background: #cfd8dc; }
+    .plate {
+      display: inline-block;
+      min-width: 132px;
+      background: rgba(20, 8, 28, 0.88);
+      border-radius: 4px;
+      padding: 4px 8px 5px;
+    }
+    .name { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .meta { font-size: 12px; color: #d7ffe8; font-weight: 600; }
+    .bench-wrap {
+      margin: 0 20px 22px;
+      background: #2a0230;
+      border-radius: 8px;
+      padding: 12px 10px 16px;
+    }
+    .bench-title {
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.7);
+      font-weight: 700;
+      margin-bottom: 10px;
+      padding-left: 8px;
+    }
+    .bench-row { display: flex; justify-content: space-around; }
+    .bench-row .player { width: 200px; }
+    .bench-row .kit { height: 90px; }
+    .bench-row .kit-wrap { height: 90px; }
+    .footer {
+      padding: 0 32px 20px;
+      display: flex;
+      justify-content: space-between;
+      color: rgba(255,255,255,0.7);
+      font-size: 14px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <header class="header">
+      <div>
+        <div class="brand">Fantasy Premier League</div>
+        <h1 class="team-name">{{ team.team_name }}</h1>
+        <div class="sub">{{ team.manager_name }} · {{ team.formation }}</div>
+      </div>
+      <div class="gw-badge">
+        <small>Gameweek</small>
+        <strong>{{ team.gw }}</strong>
+      </div>
+    </header>
+
+    <section class="pitch">
+      {% for row_key in ["GKP", "DEF", "MID", "FWD"] %}
+      <div class="row">
+        {% for player in team.starters.get(row_key, []) %}
+        <article class="player">
+          <div class="kit-wrap">
+            <img class="kit" src="{{ player.shirt_url }}" alt="{{ player.web_name }}" data-badge="{{ player.badge_url }}" onerror="if(this.dataset.badge && this.src!==this.dataset.badge){this.src=this.dataset.badge;}else{this.style.display='none';this.nextElementSibling.style.display='flex';}" />
+            <div class="fallback">{{ player.team_short }}</div>
+            {% if player.is_captain %}<span class="badge">C</span>{% elif player.is_vice %}<span class="badge v">V</span>{% endif %}
+          </div>
+          <div class="plate">
+            <div class="name">{{ player.web_name }}</div>
+            <div class="meta">{{ player.fixture }}</div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </section>
+
+    <section class="bench-wrap">
+      <div class="bench-title">Substitutes</div>
+      <div class="bench-row">
+        {% for player in team.bench %}
+        <article class="player">
+          <div class="kit-wrap">
+            <img class="kit" src="{{ player.shirt_url }}" alt="{{ player.web_name }}" data-badge="{{ player.badge_url }}" onerror="if(this.dataset.badge && this.src!==this.dataset.badge){this.src=this.dataset.badge;}else{this.style.display='none';this.nextElementSibling.style.display='flex';}" />
+            <div class="fallback">{{ player.team_short }}</div>
+          </div>
+          <div class="plate">
+            <div class="name">{{ player.web_name }}</div>
+            <div class="meta">{{ player.fixture }}</div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>Value {{ team.team_value }} · Bank {{ team.bank }}</span>
+      <span>{{ team.gw_name }}</span>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.env
+output/*.png
+.pytest_cache/
+.playwright-browsers/
+.DS_Store
+Thumbs.db
+

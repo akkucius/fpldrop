@@ -1,0 +1,32 @@
+---
+description: Project context for fpl-x — what this repo is, how to run it, and what agents must not do
+alwaysApply: true
+---
+
+# fpl-x project context
+
+Personal CLI: fetch **Bruno Mars XI** (manager `4703066`), render a pitch PNG, optionally post to X. Full agent brief: `AGENTS.md`. Graphic/caption work: `.cursor/skills/fpl-team-graphic/SKILL.md`.
+
+## Run (Git Bash)
+
+```bash
+.venv/Scripts/python.exe -m fpl_x publish --dry-run
+```
+
+Use that interpreter with forward slashes. Default to dry-run. Do not tweet unless the user asks.
+
+## Code map
+
+- `src/fpl_x/cli.py` — `publish`
+- `src/fpl_x/fpl.py` — fetch + `TeamSnapshot.caption()`
+- `src/fpl_x/render.py` — Playwright PNG
+- `src/fpl_x/twitter.py` — OAuth 1.0a post
+- `src/fpl_x/templates/team_card.html` — visual source of truth
+- Preview: `output/gw{N}.png`
+
+## Must not
+
+- Commit or paste `.env` / `FPL_ACCESS_TOKEN` / X keys
+- Put URLs on the graphic or in the caption
+- Change caption shape without updating `TeamSnapshot.caption()`
+- Treat this as a multi-user product; keep diffs small
