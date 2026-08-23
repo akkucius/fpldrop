@@ -4,7 +4,7 @@ from pathlib import Path
 
 import tweepy
 
-from fpl_x.config import Settings
+from fpldrop.config import Settings
 
 
 class TwitterError(RuntimeError):

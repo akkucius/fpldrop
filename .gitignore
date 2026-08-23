@@ -7,6 +7,7 @@ dist/
 build/
 .env
 output/*.png
+logs/*.log
 .pytest_cache/
 .playwright-browsers/
 .DS_Store

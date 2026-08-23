@@ -6,7 +6,7 @@ from pathlib import Path
 from jinja2 import Environment, PackageLoader, select_autoescape
 from playwright.sync_api import sync_playwright
 
-from fpl_x.fpl import TeamSnapshot
+from fpldrop.fpl import TeamSnapshot
 
 VIEWPORT = {"width": 1080, "height": 1800}
 
@@ -48,7 +48,7 @@ def render_card(snapshot: TeamSnapshot, output_path: Path) -> Path:
 
 def _render_html(snapshot: TeamSnapshot) -> str:
     env = Environment(
-        loader=PackageLoader("fpl_x", "templates"),
+        loader=PackageLoader("fpldrop", "templates"),
         autoescape=select_autoescape(["html"]),
     )
     template = env.get_template("team_card.html")
@@ -56,4 +56,4 @@ def _render_html(snapshot: TeamSnapshot) -> str:
 
 
 def template_path() -> Path:
-    return Path(str(files("fpl_x").joinpath("templates/team_card.html")))
+    return Path(str(files("fpldrop").joinpath("templates/team_card.html")))

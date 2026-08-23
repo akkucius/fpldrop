@@ -8,7 +8,7 @@ description: >-
 
 # FPL team graphic design
 
-Source of truth: [src/fpl_x/templates/team_card.html](../../src/fpl_x/templates/team_card.html).
+Source of truth: [src/fpldrop/templates/team_card.html](../../src/fpldrop/templates/team_card.html).
 Preview with `output/gw1.png` after a dry-run. Match the official FPL pitch screenshot look (kits, name plate, fixture, C/V), not player-headshot circles.
 
 ## Visual system
@@ -40,12 +40,12 @@ All the best guys! Let's go.
 #FPL #FPLCommunity
 ```
 
-Optional extra lines only when true: `Chip: …`, `Transfers: n`. Defined in `TeamSnapshot.caption()` in [src/fpl_x/fpl.py](../../src/fpl_x/fpl.py).
+Optional extra lines only when true: `Chip: …`, `Transfers: n`. Defined in `TeamSnapshot.caption()` in [src/fpldrop/fpl.py](../../src/fpldrop/fpl.py).
 
 ## Change workflow
 
 1. Edit the HTML/CSS template or caption builder
-2. Dry-run from Git Bash: `.venv/Scripts/python.exe -m fpl_x publish --dry-run`
+2. Dry-run from Git Bash: `.venv/Scripts/python.exe -m fpldrop publish --dry-run`
 3. Open `output/gw{N}.png` and check kits, C/V, formation, truncation
 4. Do not post to X unless the user asks
 

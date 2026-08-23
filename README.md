@@ -5,11 +5,15 @@ Share your FPL team each gameweek with a proper pitch graphic and a ready captio
 Python CLI for **Bruno Mars XI** (FPL manager `4703066`). Built for one or two posts a week, run by hand on this machine.
 
 ```bash
-.venv/Scripts/python.exe -m fpl_x publish --dry-run
-.venv/Scripts/python.exe -m fpl_x publish
+.venv/Scripts/python.exe -m fpldrop publish --dry-run
+.venv/Scripts/python.exe -m fpldrop publish
 ```
 
 `--dry-run` writes `output/gw{N}.png` and `output/gw{N}.json` (caption + team details). Nothing is sent to X.
+
+A real `publish` (no `--dry-run`) uploads the PNG and tweets the caption. After a successful post the JSON sidecar sets `posted: true` and `tweet_id`. Errors and successes also go to `logs/fpldrop.log`.
+
+The first live post worked on 23 Aug 2026 (GW1): https://x.com/i/web/status/2091475250529898563
 
 Use **Git Bash** with forward slashes. `python` is not on PATH; `.\.venv\Scripts\python.exe` breaks in bash because backslashes are escapes.
 
@@ -37,23 +41,28 @@ JSON.parse(localStorage.getItem("oidc.user:https://account.premierleague.com/as:
 
   4. Paste into `FPL_ACCESS_TOKEN=` in `.env`
 
-Copy **`access_token`**, not `id_token` and not `refresh_token`. The access token lasts a few hours.
+Copy **`access_token`**, not `id_token` and not `refresh_token`. The access token lasts a few hours. FPL refresh-token exchange does not work for this login, so do not rely on `FPL_REFRESH_TOKEN`.
 
 ### X (only required to post)
 
-Pay-per-use. A Bearer token cannot create posts.
+Pay-per-use at [console.x.com](https://console.x.com). A Bearer token cannot create posts. X Premium, Grok, and other X AI plans do **not** add Developer Console credits.
+
+This project already has **$5 API credits** loaded (X app **Bruno Mars XI**). One image post with **no URL** in the caption is about **$0.015**. At one or two posts a week, $5 lasts a long time.
+
+If X returns **`402 Payment Required` / `credits depleted`**, the graphic still saved locally but nothing was tweeted. Top up at [console.x.com/pricing](https://console.x.com/pricing) (Billing → Buy credits). Leave auto-recharge off unless you want it.
 
 1. X account with a verified phone number
-2. [developer.x.com](https://developer.x.com) → Project + App, **Read and Write**
-3. Small credit balance
+2. [console.x.com](https://console.x.com) → Project + App, **Read and Write**
+3. API credit balance (currently $5)
 4. OAuth 1.0a keys into `.env`: `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET`
 
-One or two image posts a week with **no URL** in the caption is typically a few cents a month.
+Ignore Bearer and OAuth 2.0 Client ID/Secret. This script uses OAuth 1.0a only.
 
 ## Setup
 
+From the `fpldrop` repo root:
+
 ```bash
-cd /c/xampp/htdocs/fpl-x
 py -3 -m venv .venv
 .venv/Scripts/python.exe -m pip install -e .
 .venv/Scripts/python.exe -m playwright install chromium
@@ -65,9 +74,9 @@ Edit `.env`: manager ID is already set. Add `FPL_ACCESS_TOKEN` for pre-deadline 
 ## Usage
 
 ```bash
-.venv/Scripts/python.exe -m fpl_x publish --dry-run
-.venv/Scripts/python.exe -m fpl_x publish --dry-run --gw 1
-.venv/Scripts/python.exe -m fpl_x publish
+.venv/Scripts/python.exe -m fpldrop publish --dry-run
+.venv/Scripts/python.exe -m fpldrop publish --dry-run --gw 1
+.venv/Scripts/python.exe -m fpldrop publish
 ```
 
 `--gw` defaults to the current or next FPL gameweek. Open `output/gw{N}.png` and `output/gw{N}.json` before a real post.
@@ -86,16 +95,19 @@ All the best guys! Let's go.
 #FPL #FPLCommunity
 ```
 
+The CLI sets stdout to UTF-8 so that caption emoji prints on Windows (cp1252 used to crash before the tweet).
+
 ## Layout
 
 | Path | Role |
 |---|---|
-| `src/fpl_x/fpl.py` | FPL fetch (public picks or authenticated `my-team`) |
-| `src/fpl_x/render.py` | HTML pitch card → PNG (Playwright) |
-| `src/fpl_x/twitter.py` | OAuth 1.0a media upload + post |
-| `src/fpl_x/cli.py` | `publish` command |
-| `src/fpl_x/templates/team_card.html` | Graphic design |
+| `src/fpldrop/fpl.py` | FPL fetch (public picks or authenticated `my-team`) |
+| `src/fpldrop/render.py` | HTML pitch card → PNG (Playwright) |
+| `src/fpldrop/twitter.py` | OAuth 1.0a media upload + post |
+| `src/fpldrop/cli.py` | `publish` command |
+| `src/fpldrop/templates/team_card.html` | Graphic design |
 | `.env.example` | Env template (copy to `.env`) |
+| `logs/fpldrop.log` | Success and error lines from each run |
 | `.cursor/skills/fpl-team-graphic/` | Design skill for later graphic tweaks |
 
-`.env` and `output/*.png` are gitignored. Do not commit tokens or generated team sheets.
+`.env`, `output/*.png`, and generated sidecars are gitignored. Do not commit tokens or generated team sheets.

@@ -1,5 +1,5 @@
 [project]
-name = "fpl-x"
+name = "fpldrop"
 version = "0.1.0"
 description = "Share your FPL team each gameweek with a proper pitch graphic and a ready caption. It posts to X today, and other social apps will follow."
 readme = "README.md"
@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-fpl-x = "fpl_x.cli:main"
+fpldrop = "fpldrop.cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -23,4 +23,4 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-fpl_x = ["templates/*"]
+fpldrop = ["templates/*"]

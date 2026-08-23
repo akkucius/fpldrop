@@ -1,32 +1,36 @@
 ---
-description: Project context for fpl-x — what this repo is, how to run it, and what agents must not do
+description: Project context for fpldrop — what this repo is, how to run it, and what agents must not do
 alwaysApply: true
 ---
 
-# fpl-x project context
+# fpldrop project context
 
-Personal CLI: fetch **Bruno Mars XI** (manager `4703066`), render a pitch PNG, optionally post to X. Full agent brief: `AGENTS.md`. Graphic/caption work: `.cursor/skills/fpl-team-graphic/SKILL.md`.
+Personal CLI (`fpldrop`): fetch **Bruno Mars XI** (manager `4703066`), render a pitch PNG, optionally post to X. Full agent brief: `AGENTS.md`. Graphic/caption work: `.cursor/skills/fpl-team-graphic/SKILL.md`.
 
 ## Run (Git Bash)
 
 ```bash
-.venv/Scripts/python.exe -m fpl_x publish --dry-run
+.venv/Scripts/python.exe -m fpldrop publish --dry-run
 ```
 
 Use that interpreter with forward slashes. Default to dry-run. Do not tweet unless the user asks.
 
+Live posting works. A **$5** X API credit pack is loaded on [console.x.com](https://console.x.com). First successful tweet: GW1, 23 Aug 2026. `402` / `credits depleted` means top up credits — Premium/Grok does not count. OAuth 1.0a keys only.
+
 ## Code map
 
-- `src/fpl_x/cli.py` — `publish`
-- `src/fpl_x/fpl.py` — fetch + `TeamSnapshot.caption()`
-- `src/fpl_x/render.py` — Playwright PNG
-- `src/fpl_x/twitter.py` — OAuth 1.0a post
-- `src/fpl_x/templates/team_card.html` — visual source of truth
-- Preview: `output/gw{N}.png`
+- `src/fpldrop/cli.py` — `publish` (UTF-8 stdout so caption emoji does not crash Windows)
+- `src/fpldrop/fpl.py` — fetch + `TeamSnapshot.caption()`
+- `src/fpldrop/render.py` — Playwright PNG
+- `src/fpldrop/twitter.py` — OAuth 1.0a post
+- `src/fpldrop/templates/team_card.html` — visual source of truth
+- Preview: `output/gw{N}.png` plus `output/gw{N}.json` (`posted`, `tweet_id`)
+- Log: `logs/fpldrop.log`
 
 ## Must not
 
 - Commit or paste `.env` / `FPL_ACCESS_TOKEN` / X keys
 - Put URLs on the graphic or in the caption
 - Change caption shape without updating `TeamSnapshot.caption()`
+- Treat FPL `refresh_token` as a working login path
 - Treat this as a multi-user product; keep diffs small

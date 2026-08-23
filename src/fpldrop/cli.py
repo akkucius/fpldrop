@@ -6,15 +6,34 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fpl_x.config import load_settings
-from fpl_x.fpl import FplError, TeamSnapshot, build_snapshot
-from fpl_x.render import render_card
-from fpl_x.twitter import TwitterError, post_image
+from fpldrop.config import load_settings
+from fpldrop.fpl import FplError, TeamSnapshot, build_snapshot
+from fpldrop.render import render_card
+from fpldrop.twitter import TwitterError, post_image
+
+LOG_PATH = Path("logs") / "fpldrop.log"
+
+
+def _log(message: str) -> None:
+    LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    line = f"{stamp}  {message}"
+    with LOG_PATH.open("a", encoding="utf-8") as handle:
+        handle.write(line + "\n")
+    print(line)
+
+
+def _configure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
 
 
 def main(argv: list[str] | None = None) -> int:
+    _configure_stdio()
     parser = argparse.ArgumentParser(
-        prog="fpl-x",
+        prog="fpldrop",
         description="Render your FPL team graphic and optionally post it to X.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
@@ -60,6 +79,7 @@ def _publish(args: argparse.Namespace) -> int:
             env_path=settings.env_path,
         )
     except FplError as exc:
+        _log(f"ERROR FPL: {exc}")
         print(f"FPL error: {exc}", file=sys.stderr)
         return 1
 
@@ -68,6 +88,7 @@ def _publish(args: argparse.Namespace) -> int:
     try:
         path = render_card(snapshot, output)
     except Exception as exc:
+        _log(f"ERROR render: {exc}")
         print(f"Render error: {exc}", file=sys.stderr)
         print(
             "If Chromium is missing, run: playwright install chromium",
@@ -82,21 +103,26 @@ def _publish(args: argparse.Namespace) -> int:
     print("--- caption ---")
     print(caption)
     print("---------------")
+    _log(f"Saved graphic {path} and {json_path}")
 
     if args.dry_run:
+        _log("Dry-run: not posting to X.")
         print("Dry-run: not posting to X.")
         return 0
 
     try:
         tweet_id = post_image(settings, caption, path)
     except TwitterError as exc:
+        _log(f"ERROR X: {exc}")
         print(f"X error: {exc}", file=sys.stderr)
         return 1
 
     _save_post_json(snapshot, path, caption, posted=True, tweet_id=tweet_id or None)
     if tweet_id:
+        _log(f"Posted tweet_id={tweet_id}")
         print(f"Posted: https://x.com/i/web/status/{tweet_id}")
     else:
+        _log("Posted to X (no tweet id returned).")
         print("Posted to X.")
     return 0
 

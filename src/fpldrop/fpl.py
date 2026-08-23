@@ -7,7 +7,7 @@ from pathlib import Path
 
 import httpx
 
-from fpl_x.config import (
+from fpldrop.config import (
     DEFAULT_OIDC_CLIENT_ID,
     OIDC_TOKEN_URL,
     persist_refresh_token,
