@@ -10,10 +10,10 @@ Personal CLI (`fpldrop`): fetch **Bruno Mars XI** (manager `4703066`), render a 
 ## Run (Git Bash)
 
 ```bash
-.venv/Scripts/python.exe -m fpldrop publish --dry-run
+.venv/Scripts/python.exe -m fpldrop preview
 ```
 
-Use that interpreter with forward slashes. Default to dry-run. Do not tweet unless the user asks.
+Default to preview / dry-run. Do not tweet unless the user asks. `preview` prints a dotted tweet + pitch and writes `output/gw{N}.preview.txt`.
 
 Live posting works. A **$5** X API credit pack is loaded on [console.x.com](https://console.x.com). First successful tweet: GW1, 23 Aug 2026. `402` / `credits depleted` means top up credits — Premium/Grok does not count. OAuth 1.0a keys only.
 
@@ -23,8 +23,8 @@ Live posting works. A **$5** X API credit pack is loaded on [console.x.com](http
 - `src/fpldrop/fpl.py` — fetch + `TeamSnapshot.caption()`
 - `src/fpldrop/render.py` — Playwright PNG
 - `src/fpldrop/twitter.py` — OAuth 1.0a post
-- `src/fpldrop/templates/team_card.html` — visual source of truth
-- Preview: `output/gw{N}.png` plus `output/gw{N}.json` (`posted`, `tweet_id`)
+- `src/fpldrop/templates/team_card.html` — visual source of truth (kits, points plates, Points/Transfers pills)
+- Preview: `output/gw{N}.png`, `output/gw{N}.json`, `output/gw{N}.preview.txt`
 - Log: `logs/fpldrop.log`
 
 ## Must not

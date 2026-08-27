@@ -15,12 +15,13 @@ Read this file first. For graphic/caption work, also follow `.cursor/skills/fpl-
 `python` is not on PATH. Use the venv interpreter with **forward slashes**. Do not use `.\.venv\Scripts\python.exe` in Git Bash (backslashes are escapes).
 
 ```bash
+.venv/Scripts/python.exe -m fpldrop preview
+.venv/Scripts/python.exe -m fpldrop preview --text-only
 .venv/Scripts/python.exe -m fpldrop publish --dry-run
-.venv/Scripts/python.exe -m fpldrop publish --dry-run --gw 1
 .venv/Scripts/python.exe -m fpldrop publish
 ```
 
-`--dry-run` writes `output/gw{N}.png` and `output/gw{N}.json`. Nothing is posted to X.
+`preview` / `--dry-run` never post. They print a dotted tweet + pitch preview and write `output/gw{N}.preview.txt`. Full preview also writes the PNG. `--text-only` skips the graphic for a fast check.
 
 A live `publish` (only when the user asks) uploads the PNG, tweets the caption, then writes `posted` / `tweet_id` into the JSON sidecar. The CLI reconfigures stdout to UTF-8 so the 🎯 caption does not crash Windows cp1252 before the tweet.
 
@@ -38,6 +39,7 @@ Setup (once): `py -3 -m venv .venv`, then install editable package and Chromium 
 | `src/fpldrop/templates/team_card.html` | Pitch graphic (visual source of truth) |
 | `output/gw{N}.png` | Generated card (gitignored) |
 | `output/gw{N}.json` | Caption, team metadata, `posted`, `tweet_id` |
+| `output/gw{N}.preview.txt` | Dotted tweet + pitch preview |
 | `logs/fpldrop.log` | UTC success/error lines |
 
 Pipeline: `build_snapshot` → `render_card` → `snapshot.caption()` → optional `post_image`.
@@ -62,13 +64,13 @@ Credits live on [console.x.com](https://console.x.com) for the X app **Bruno Mar
 - Never commit `.env`. Never paste tokens, refresh tokens, or X keys into chat or files that will be committed.
 - Do not post to X unless the user explicitly asks. Default to `--dry-run`.
 - Do not put URLs on the graphic or in the caption (X bills URL posts higher).
-- Caption shape is defined in `TeamSnapshot.caption()` — keep that shape (GW line, captain, formation, optional chip/transfers, hashtags).
-- Graphic look: official FPL pitch style (kits, name plate, fixture, C/V). Not player-headshot circles. Colors and layout: the team-graphic skill.
+- Caption shape is defined in `TeamSnapshot.caption()`; keep the scores recap. No em dashes in posted text.
+- Graphic look: FPL pitch style (kits, name plate, per-player points, C/V, Points/Transfers pills). Not player-headshot circles. Colors and layout: the team-graphic skill.
 - Keep changes small. This is a one-manager personal tool, not a multi-tenant product.
 
 ## After graphic or caption edits
 
-1. Dry-run from Git Bash.
-2. Open `output/gw{N}.png` and check kits, C/V, formation, truncation.
-3. Confirm `output/gw{N}.json` caption looks right.
+1. Preview from Git Bash: `.venv/Scripts/python.exe -m fpldrop preview`
+2. Check the dotted block / `output/gw{N}.preview.txt`, then open `output/gw{N}.png`
+3. Confirm kits, C/V, points, pills, truncation
 4. Stop there unless the user asked to tweet.

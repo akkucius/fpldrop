@@ -53,10 +53,21 @@ class PlayerCard:
     price: str
     event_points: int
     total_points: int
+    minutes: int = 0
 
     @property
     def row_key(self) -> str:
         return ELEMENT_TYPE_ROWS.get(self.element_type, "MID")
+
+    @property
+    def display_points(self) -> int:
+        if self.multiplier > 1:
+            return self.event_points * self.multiplier
+        return self.event_points
+
+    @property
+    def played(self) -> bool:
+        return self.minutes > 0
 
 
 @dataclass
@@ -84,27 +95,106 @@ class TeamSnapshot:
     bench: list[PlayerCard] = field(default_factory=list)
 
     def caption(self) -> str:
-        lines = [
-            f"Here's my GW{self.gw} Team",
-            "",
-            f"(C) {self.captain_name}",
-            "🎯 10k",
-            f"Formation {self.formation}",
-        ]
+        lines = [f"Here's my GW{self.gw} Scores", ""]
+        if self.overall_rank is not None:
+            lines.append(f"📈 OR : {self.overall_rank:,}")
+        if self.gw_rank is not None:
+            lines.append(f"📉 GR : {self.gw_rank:,}")
+        if self.gw_points is not None:
+            lines.append(f"📍 GW{self.gw} : {self.gw_points}")
+        lines.append(f"©️ Captain : {self.captain_name}")
+        lines.append("🎯 Target : 10k")
         if self.chip_label:
             lines.append(f"Chip: {self.chip_label}")
-        if self.transfers:
-            cost = f" (−{self.transfer_cost})" if self.transfer_cost else ""
-            lines.append(f"Transfers: {self.transfers}{cost}")
+        lines.extend(["", self._catchy_blurb(), "", f"#FPL #FPLCommunity #EPL #GW{self.gw}"])
+        return "\n".join(lines)
+
+    def _catchy_blurb(self) -> str:
+        cta = "What's your score? Drop it below 👇"
+        quiet = self._quiet_line()
+        pts = self.gw_points
+
+        if pts is None:
+            return f"Team is in. Let's see how this one goes.\n\n{cta}"
+
+        if pts >= 80:
+            line = f"What a week. {self.captain_name} was on one."
+        elif pts >= 65:
+            line = f"Happy with {pts}. Still chasing that 10k."
+        elif pts >= 50:
+            line = "Okay GW. Nothing special."
+        elif self.gw == 1:
+            line = "Not a good start in FPL."
+        else:
+            line = "Not a good GW."
+
+        if quiet and pts < 65:
+            line = f"{line} {quiet}"
+        if pts < 50:
+            line = f"{line} Moving on."
+
+        return f"{line}\n\n{cta}"
+
+    def _quiet_line(self) -> str:
+        names = self._quiet_starters()
+        if not names:
+            return ""
+        if len(names) == 1:
+            return f"{names[0]} blanked."
+        return f"{names[0]} and {names[1]} blanked."
+
+    def _quiet_starters(self) -> list[str]:
+        starters = [player for row in self.starters.values() for player in row]
+        quiet = [
+            player
+            for player in starters
+            if player.display_points <= 1 and not player.is_captain
+        ]
+        quiet.sort(key=lambda player: (player.display_points, player.pick_position))
+        return [player.web_name for player in quiet[:2]]
+
+    def preview_block(self) -> str:
+        width = 46
+        rule = "·" * width
+        title = " TWEET PREVIEW "
+        pitch = " PITCH PREVIEW "
+        lines = [
+            rule,
+            f"{title:·^{width}}",
+            rule,
+            self.caption(),
+            rule,
+            f"{pitch:·^{width}}",
+            rule,
+        ]
+        pills = []
+        if self.gw_points is not None:
+            pills.append(f"{self.gw_points} Points")
+        pills.append(f"{self.transfers} Transfers")
+        lines.append("  " + "     ".join(pills))
+        lines.append("")
+        for row_key in ("GKP", "DEF", "MID", "FWD"):
+            row = self.starters.get(row_key) or []
+            if not row:
+                continue
+            lines.append("  " + "   ".join(_preview_player(player) for player in row))
+        if self.bench:
+            lines.append("")
+            lines.append("  Substitutes")
+            lines.append("  " + "   ".join(_preview_player(player) for player in self.bench))
         lines.extend(
             [
-                "",
-                "All the best guys! Let's go.",
-                "",
-                "#FPL #FPLCommunity",
+                rule,
+                f"  {self.team_name} · {self.formation} · GW{self.gw}",
+                rule,
             ]
         )
         return "\n".join(lines)
+
+
+def _preview_player(player: PlayerCard) -> str:
+    mark = "(C) " if player.is_captain else "(V) " if player.is_vice else ""
+    return f"{mark}{player.web_name} {player.display_points}"
 
 
 class FplError(RuntimeError):
@@ -152,6 +242,12 @@ class FplClient:
         data = self._get("/fixtures/", params={"event": gw})
         if not isinstance(data, list):
             raise FplError("Unexpected fixtures payload")
+        return data
+
+    def live(self, gw: int) -> dict:
+        data = self._get(f"/event/{gw}/live/")
+        if not isinstance(data, dict):
+            raise FplError("Unexpected live points payload")
         return data
 
     def my_team(self, manager_id: int) -> dict:
@@ -289,6 +385,7 @@ def build_snapshot(
         entry = client.entry(manager_id)
         fixtures = client.fixtures(event_id)
         picks_payload = _load_picks(client, manager_id, event_id, entry)
+        live_stats = _live_stats(client, event_id)
         return assemble_snapshot(
             manager_id=manager_id,
             gw=event_id,
@@ -296,6 +393,7 @@ def build_snapshot(
             entry=entry,
             picks_payload=picks_payload,
             fixtures=fixtures,
+            live_stats=live_stats,
         )
     finally:
         if own_client:
@@ -311,6 +409,20 @@ def _load_picks(client: FplClient, manager_id: int, gw: int, entry: dict) -> dic
         pass
     my_team = client.my_team(manager_id)
     return _my_team_as_picks(my_team, entry)
+
+
+def _live_stats(client: FplClient, gw: int) -> dict[int, dict]:
+    try:
+        payload = client.live(gw)
+    except FplError:
+        return {}
+    stats: dict[int, dict] = {}
+    for item in payload.get("elements") or []:
+        try:
+            stats[int(item["id"])] = item.get("stats") or {}
+        except (KeyError, TypeError, ValueError):
+            continue
+    return stats
 
 
 def _my_team_as_picks(my_team: dict, entry: dict) -> dict:
@@ -344,6 +456,7 @@ def assemble_snapshot(
     entry: dict,
     picks_payload: dict,
     fixtures: list[dict],
+    live_stats: dict[int, dict] | None = None,
 ) -> TeamSnapshot:
     elements = {item["id"]: item for item in bootstrap.get("elements") or []}
     teams = {item["id"]: item for item in bootstrap.get("teams") or []}
@@ -361,6 +474,13 @@ def assemble_snapshot(
             continue
         team = teams.get(element["team"], {})
         is_gk = int(element.get("element_type") or 0) == 1
+        stats = (live_stats or {}).get(int(element["id"])) or {}
+        if stats:
+            event_points = int(stats.get("total_points") or 0)
+            minutes = int(stats.get("minutes") or 0)
+        else:
+            event_points = int(element.get("event_points") or 0)
+            minutes = 0
         players.append(
             PlayerCard(
                 element_id=element["id"],
@@ -376,8 +496,9 @@ def assemble_snapshot(
                 multiplier=int(pick.get("multiplier") or 0),
                 fixture=_fixture_label(int(element["team"]), fixtures, teams),
                 price=_money(int(element.get("now_cost") or 0)),
-                event_points=int(element.get("event_points") or 0),
+                event_points=event_points,
                 total_points=int(element.get("total_points") or 0),
+                minutes=minutes,
             )
         )
 
@@ -434,8 +555,8 @@ def assemble_snapshot(
         chip=chip,
         chip_label=chip_label,
         points_on_bench=_optional_int(history.get("points_on_bench")),
-        captain_name=captain.web_name if captain else "—",
-        vice_name=vice.web_name if vice else "—",
+        captain_name=captain.web_name if captain else "-",
+        vice_name=vice.web_name if vice else "-",
         starters=rows,
         bench=bench,
     )
@@ -459,7 +580,7 @@ def _fixture_label(team_id: int, fixtures: list[dict], teams: dict) -> str:
         elif fixture.get("team_a") == team_id:
             opp = teams.get(fixture.get("team_h"), {})
             labels.append(f"{opp.get('short_name', '?')} (A)")
-    return ", ".join(labels) if labels else "—"
+    return ", ".join(labels) if labels else "-"
 
 
 def _money(tenths: int) -> str:

@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fpldrop.config import load_settings
-from fpldrop.fpl import FplError, TeamSnapshot, build_snapshot
+from fpldrop.fpl import FplError, build_snapshot
 from fpldrop.render import render_card
 from fpldrop.twitter import TwitterError, post_image
 
@@ -42,24 +42,34 @@ def main(argv: list[str] | None = None) -> int:
     publish.add_argument(
         "--dry-run",
         action="store_true",
-        help="Write PNG and print caption; do not post",
+        help="Write PNG and print dotted preview; do not post",
     )
-    publish.add_argument("--gw", type=int, default=None, help="Gameweek number (default: current/next)")
-    publish.add_argument(
-        "--manager-id",
-        type=int,
-        default=None,
-        help="Override FPL_MANAGER_ID from .env",
+    preview = sub.add_parser(
+        "preview",
+        help="Dotted tweet + pitch preview, write PNG; do not post",
     )
-    publish.add_argument(
-        "--output",
-        type=Path,
-        default=None,
-        help="PNG path (default: output/gw{N}.png)",
+    for extra in (publish, preview):
+        extra.add_argument("--gw", type=int, default=None, help="Gameweek number (default: current/next)")
+        extra.add_argument(
+            "--manager-id",
+            type=int,
+            default=None,
+            help="Override FPL_MANAGER_ID from .env",
+        )
+        extra.add_argument(
+            "--output",
+            type=Path,
+            default=None,
+            help="PNG path (default: output/gw{N}.png)",
+        )
+    preview.add_argument(
+        "--text-only",
+        action="store_true",
+        help="Skip PNG render; print the dotted preview only",
     )
 
     args = parser.parse_args(argv)
-    if args.command == "publish":
+    if args.command in {"publish", "preview"}:
         return _publish(args)
     parser.error(f"Unknown command: {args.command}")
     return 2
@@ -84,30 +94,42 @@ def _publish(args: argparse.Namespace) -> int:
         return 1
 
     output = args.output or Path("output") / f"gw{snapshot.gw}.png"
-    print(f"Rendering GW{snapshot.gw} graphic for {snapshot.team_name}...")
-    try:
-        path = render_card(snapshot, output)
-    except Exception as exc:
-        _log(f"ERROR render: {exc}")
-        print(f"Render error: {exc}", file=sys.stderr)
-        print(
-            "If Chromium is missing, run: playwright install chromium",
-            file=sys.stderr,
-        )
-        return 1
+    preview_only = args.command == "preview"
+    dry_run = preview_only or getattr(args, "dry_run", False)
+    text_only = getattr(args, "text_only", False)
+
+    path = output
+    if text_only:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        print(f"Text preview for GW{snapshot.gw} · {snapshot.team_name}")
+    else:
+        print(f"Rendering GW{snapshot.gw} graphic for {snapshot.team_name}...")
+        try:
+            path = render_card(snapshot, output)
+        except Exception as exc:
+            _log(f"ERROR render: {exc}")
+            print(f"Render error: {exc}", file=sys.stderr)
+            print(
+                "If Chromium is missing, run: playwright install chromium",
+                file=sys.stderr,
+            )
+            return 1
 
     caption = snapshot.caption()
+    preview = snapshot.preview_block()
     json_path = _save_post_json(snapshot, path, caption, posted=False)
-    print(f"Saved {path.resolve()}")
+    preview_path = path.with_suffix(".preview.txt")
+    preview_path.write_text(preview + "\n", encoding="utf-8")
+    if not text_only:
+        print(f"Saved {path.resolve()}")
     print(f"Saved {json_path.resolve()}")
-    print("--- caption ---")
-    print(caption)
-    print("---------------")
-    _log(f"Saved graphic {path} and {json_path}")
+    print(f"Saved {preview_path.resolve()}")
+    print(preview)
+    _log(f"Saved graphic {path}, {json_path}, and {preview_path}")
 
-    if args.dry_run:
-        _log("Dry-run: not posting to X.")
-        print("Dry-run: not posting to X.")
+    if dry_run:
+        _log("Preview/dry-run: not posting to X.")
+        print("Preview only: not posting to X.")
         return 0
 
     try:
@@ -145,6 +167,10 @@ def _save_post_json(
         "captain": snapshot.captain_name,
         "vice": snapshot.vice_name,
         "chip": snapshot.chip_label,
+        "gw_points": snapshot.gw_points,
+        "gw_rank": snapshot.gw_rank,
+        "overall_rank": snapshot.overall_rank,
+        "transfers": snapshot.transfers,
         "caption": caption,
         "image": str(image_path).replace("\\", "/"),
         "posted": posted,

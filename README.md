@@ -5,11 +5,11 @@ Share your FPL team each gameweek with a proper pitch graphic and a ready captio
 Python CLI for **Bruno Mars XI** (FPL manager `4703066`). Built for one or two posts a week, run by hand on this machine.
 
 ```bash
-.venv/Scripts/python.exe -m fpldrop publish --dry-run
+.venv/Scripts/python.exe -m fpldrop preview
 .venv/Scripts/python.exe -m fpldrop publish
 ```
 
-`--dry-run` writes `output/gw{N}.png` and `output/gw{N}.json` (caption + team details). Nothing is sent to X.
+`preview` writes `output/gw{N}.png`, `output/gw{N}.json`, and `output/gw{N}.preview.txt` (dotted tweet + pitch). Nothing is sent to X. Use `--text-only` for a fast caption check without rendering the graphic.
 
 A real `publish` (no `--dry-run`) uploads the PNG and tweets the caption. After a successful post the JSON sidecar sets `posted: true` and `tweet_id`. Errors and successes also go to `logs/fpldrop.log`.
 
@@ -74,26 +74,33 @@ Edit `.env`: manager ID is already set. Add `FPL_ACCESS_TOKEN` for pre-deadline 
 ## Usage
 
 ```bash
+.venv/Scripts/python.exe -m fpldrop preview
+.venv/Scripts/python.exe -m fpldrop preview --text-only
 .venv/Scripts/python.exe -m fpldrop publish --dry-run
-.venv/Scripts/python.exe -m fpldrop publish --dry-run --gw 1
 .venv/Scripts/python.exe -m fpldrop publish
 ```
 
-`--gw` defaults to the current or next FPL gameweek. Open `output/gw{N}.png` and `output/gw{N}.json` before a real post.
+`--gw` defaults to the current or next FPL gameweek. Preview every GW before posting: open `output/gw{N}.preview.txt` and `output/gw{N}.png`.
 
 Caption shape (no link):
 
 ```
-Here's my GW1 Team
+Here's my GW1 Scores
 
-(C) Mbeumo
-🎯 10k
-Formation 4-4-2
+📈 OR : 1,234,567
+📉 GR : 890,123
+📍 GW1 : 47
+©️ Captain : Mbeumo
+🎯 Target : 10k
 
-All the best guys! Let's go.
+Not a good start in FPL. Maguire blanked. Moving on.
 
-#FPL #FPLCommunity
+What's your score? Drop it below 👇
+
+#FPL #FPLCommunity #EPL #GW1
 ```
+
+The verdict line is generated from GW points. No em dashes in the caption. Open `output/gw{N}.png` and `output/gw{N}.json` before a real post.
 
 The CLI sets stdout to UTF-8 so that caption emoji prints on Windows (cp1252 used to crash before the tweet).
 
